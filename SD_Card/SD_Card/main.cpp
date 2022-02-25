@@ -6,7 +6,6 @@
 #include "sdcard/ff.h"
 #include "sdcard/integer.h"
 
-// atmega128 has two leds connected to PA0 and PA1
 FATFS FatFs;	// FatFs work area 
 FIL *fp;		// fpe object 
 
