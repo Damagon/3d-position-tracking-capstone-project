@@ -33,7 +33,7 @@ int main(void)
 	PORTD &= ~(1<<PD0); // Turn LED off
 	PORTD &= ~(1<<PD1); // Turn LED off
 	
-	// reboot delay
+	/*// reboot delay
 	_delay_ms(200);
 	
 	// init sdcard
@@ -62,7 +62,30 @@ int main(void)
 			
 		}	
 		f_close(fp);// Close the file		
-	}	
+	}	*/
+	//------------------------------------------
+	// Image test
+	
+	// reboot delay
+	_delay_ms(200);
+	
+	// init sdcard
+	UINT bw;
+	f_mount(0, &FatFs);		// Give a work area to the FatFs module
+	// open file
+	fp = (FIL *)malloc(sizeof (FIL));
+	if (f_open(fp, "image.jpg", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	// Create a file // THREEDO: Change from text
+		f_write(fp, "test.jpg", sizeof("test.jpg"), &bw);	// Write data to the file
+		f_close(fp); // Close the file
+		if (bw ==  sizeof("test.jpg")) { // We wrote the entire string
+			PORTD |= (1<<PD0); // Turn LED on
+		}
+		//else led2.Set(1); //TODO: Fix
+	}
+	
+	
+	
+	//-----------------------------------------------
 	 // char str[12];
 
 	/*

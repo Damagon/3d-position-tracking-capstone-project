@@ -184,7 +184,7 @@
     <Folder Include="sdcard" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="sdcard\foolproof.jpg">
+    <None Include="test.jpg">
       <SubType>compile</SubType>
     </None>
   </ItemGroup>
