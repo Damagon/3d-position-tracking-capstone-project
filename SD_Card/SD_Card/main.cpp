@@ -29,7 +29,9 @@ DWORD get_fattime (void)
 int main(void)
 {
 	DDRD |= (1<<PD0); // Set LED pin output
+	DDRD |= (1<<PD1); // Set LED pin output
 	PORTD &= ~(1<<PD0); // Turn LED off
+	PORTD &= ~(1<<PD1); // Turn LED off
 	
 	// reboot delay
 	_delay_ms(200);
@@ -55,7 +57,7 @@ int main(void)
 			char *text2 = "This is a new line, appended to existing file!\r\n";
 			f_write(fp, text2, strlen(text2), &bw);	// Write data to the file
 			if (bw == strlen(text2)) { //we wrote the entire string
-				PORTD &= ~(1<<PD0); // Turn LED off
+				PORTD |= (1<<PD1); // Turn LED on
 			}
 			
 		}	
@@ -84,9 +86,6 @@ int main(void)
 		lcd.send_format_string("Read:%s", text);
 	}	
 	*/
-	
-	// signaling led
-	PORTD |= (1<<PD0); // Turn LED on
 	
 	// loop
 	while(1)

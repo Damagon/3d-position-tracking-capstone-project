@@ -316,7 +316,7 @@ BYTE send_cmd (		/* Returns command response (bit7==1:Send failed)*/
 	BYTE n, d, buf[6];
 
 
-	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
+	if (cmd & 0x80) {	/* ACMD<n> is the command sequence of CMD55-CMD<n> */
 		cmd &= 0x7F;
 		n = send_cmd(CMD55, 0);
 		if (n > 1) return n;
@@ -377,7 +377,7 @@ DSTATUS disk_status (
 /*-----------------------------------------------------------------------*/
 
 DSTATUS disk_initialize (
-	BYTE drv		/* Physical drive nmuber (0) */
+	BYTE drv		/* Physical drive number (0) */
 )
 {
 	BYTE n, ty, cmd, buf[4];
