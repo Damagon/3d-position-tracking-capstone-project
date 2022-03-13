@@ -13,6 +13,7 @@
 
 
 #include "diskio.h"		/* Common include file for FatFs and disk I/O layer */
+#include "util/delay.h"
 
 
 /*-------------------------------------------------------------------------*/
@@ -21,32 +22,15 @@
 
 #include <avr/io.h>			/* Include device specific declaration file here */
 
-// Set DQ as AVR MISO
-#define DO_INIT()					/* Initialize port MMC DO as input */
-#define DO_DQ		PB6 //PB3
-#define DO			(PINB &	(1<<DO_DQ))	/* Test for MMC DO ('H':true, 'L':false) */
-
-// Set DQ as AVR MOSI
-#define DI_DQ		PB5 //PB2
-#define DI_INIT()	DDRB  |= (1<<DI_DQ)	/* Initialize port MMC DI as output */
-#define DI_H()		PORTB |= (1<<DI_DQ)	/* Set MMC DI "high" */
-#define DI_L()		PORTB &= ~(1<<DI_DQ)	/* Set MMC DI "low" */
-
-// Set DQ as AVR SCK
-#define CK_DQ		PB7 //PB1
-#define CK_INIT()	DDRB  |= (1<<CK_DQ)	/* Initialize port MMC SCLK as output */
-#define CK_H()		PORTB |= (1<<CK_DQ)	/* Set MMC SCLK "high" */
-#define	CK_L()		PORTB &= ~(1<<CK_DQ)	/* Set MMC SCLK "low" */
-
-// Use a pin for CS
-#define CS_DQ		PB1 //PB0
-#define CS_INIT()	DDRB  |= (1<<CS_DQ)	/* Initialize port MMC CS as output */
-#define	CS_H()		PORTB |= (1<<CS_DQ)	/* Set MMC CS "high" */
-#define CS_L()		PORTB &= ~(1<<CS_DQ)	/* Set MMC CS "low" */
-
+#define SPI_PIN_SS		1		//SD card SS PIN
+#define SPI_PIN_MOSI	5		//MOSI PIN
+#define SPI_PIN_MISO	6		//MISO PIN
+#define SPI_PIN_SCK		7		//SCK PIN
+#define SPI_DDR			DDRB	//SPI on PORTB
+#define SPI_PORT		PORTB	//SPI on PORTB
 
 static
-void dly_us (UINT n)	/* Delay n microseconds (avr-gcc -Os) */
+void dly_us (UINT n)	/* Delay n microseconds (avr-gcc -Os) */ //TODO: Replace
 {
 	do {
 		PINB;
@@ -115,8 +99,56 @@ BYTE CardType;			/* b0:MMC, b1:SDv1, b2:SDv2, b3:Block addressing */
 
 
 /*-----------------------------------------------------------------------*/
-/* Transmit bytes to the card (bitbanging)                               */
+/* Transmit bytes to the card                               */
 /*-----------------------------------------------------------------------*/
+
+void spi_master_init(){
+	// Pin Configuration
+	SPI_DDR |= (1<<SPI_PIN_SS);
+	SPI_PORT|= (1<<SPI_PIN_SS);
+	
+	// Set MOSI and SCK output, all others input
+	SPI_DDR |= (1<<SPI_PIN_MOSI)|(1<<SPI_PIN_SCK);
+	// Enable SPI, Master, set clock rate
+	SPCR = (1<<SPIE)|(1<<SPE)|(1<<MSTR)|(0<<CPOL)|(0<<CPHA)|(0x01<<SPR0);
+	
+	//-------------------------
+	PORTB&= ~(1<<2);
+	SPDR = 0x84;
+
+	//Wait until transmission complete
+	while(!(SPSR & (1<<SPIF) ));
+
+	SPDR = 0x97;
+
+	//Wait until transmission complete
+	while(!(SPSR & (1<<SPIF) ));
+
+	PORTB|= (1<<2);
+	
+	//----------------------------
+	// Send the register address
+	PORTB&= ~(1<<2);
+	SPDR = 0x00;
+
+	//Wait until transmission complete
+	while(!(SPSR & (1<<SPIF) ));
+
+	// Receive the value from the ArduCAM
+	SPDR = 0x00; //Command
+
+	//Wait until transmission complete
+	while(!(SPSR & (1<<SPIF) ));
+	uint8_t data = SPDR;
+
+	PORTB|= (1<<2);
+	
+	//----------------------
+	if (data==0x97) {
+		PORTD|= (1 << 4);
+	}
+}
+
 
 static
 void xmit_mmc (
@@ -126,25 +158,10 @@ void xmit_mmc (
 {
 	BYTE d;
 
-
 	do {
 		d = *buff++;	/* Get a byte to be sent */
-		if (d & 0x80) DI_H(); else DI_L();	/* bit7 */
-		CK_H(); CK_L();
-		if (d & 0x40) DI_H(); else DI_L();	/* bit6 */
-		CK_H(); CK_L();
-		if (d & 0x20) DI_H(); else DI_L();	/* bit5 */
-		CK_H(); CK_L();
-		if (d & 0x10) DI_H(); else DI_L();	/* bit4 */
-		CK_H(); CK_L();
-		if (d & 0x08) DI_H(); else DI_L();	/* bit3 */
-		CK_H(); CK_L();
-		if (d & 0x04) DI_H(); else DI_L();	/* bit2 */
-		CK_H(); CK_L();
-		if (d & 0x02) DI_H(); else DI_L();	/* bit1 */
-		CK_H(); CK_L();
-		if (d & 0x01) DI_H(); else DI_L();	/* bit0 */
-		CK_H(); CK_L();
+		SPDR = d;
+		while(!(SPSR & (1<<SPIF)));
 	} while (--bc);
 }
 
@@ -160,28 +177,12 @@ void rcvr_mmc (
 	UINT bc		/* Number of bytes to receive */
 )
 {
-	BYTE r;
-
-
-	DI_H();	/* Send 0xFF */
+	BYTE r=0;
 
 	do {
-		r = 0;	 if (DO) r++;	/* bit7 */
-		CK_H(); CK_L();
-		r <<= 1; if (DO) r++;	/* bit6 */
-		CK_H(); CK_L();
-		r <<= 1; if (DO) r++;	/* bit5 */
-		CK_H(); CK_L();
-		r <<= 1; if (DO) r++;	/* bit4 */
-		CK_H(); CK_L();
-		r <<= 1; if (DO) r++;	/* bit3 */
-		CK_H(); CK_L();
-		r <<= 1; if (DO) r++;	/* bit2 */
-		CK_H(); CK_L();
-		r <<= 1; if (DO) r++;	/* bit1 */
-		CK_H(); CK_L();
-		r <<= 1; if (DO) r++;	/* bit0 */
-		CK_H(); CK_L();
+		SPDR = 0x00;
+		while(!(SPSR & (1<<SPIF) ));
+		r = (BYTE) SPDR;
 		*buff++ = r;			/* Store a received byte */
 	} while (--bc);
 }
@@ -219,8 +220,8 @@ void deselect (void)
 {
 	BYTE d;
 
-	CS_H();
-	rcvr_mmc(&d, 1);	/* Dummy clock (force DO hi-z for multiple slave SPI) */
+	SPI_PORT |= (1<<SPI_PIN_SS);
+	//rcvr_mmc(&d, 1);	/* Dummy clock (force DO hi-z for multiple slave SPI) */
 }
 
 
@@ -234,8 +235,8 @@ int select (void)	/* 1:OK, 0:Timeout */
 {
 	BYTE d;
 
-	CS_L();
-	rcvr_mmc(&d, 1);	/* Dummy clock (force DO enabled) */
+	SPI_PORT &= ~(1<<SPI_PIN_SS);
+	//rcvr_mmc(&d, 1);	/* Dummy clock (force DO enabled) */
 
 	if (wait_ready()) return 1;	/* OK */
 	deselect();
@@ -388,10 +389,8 @@ DSTATUS disk_initialize (
 	if (drv) return RES_NOTRDY;
 
 	dly_us(10000);			/* 10ms */
-	CS_INIT(); CS_H();		/* Initialize port pin tied to CS */
-	CK_INIT(); CK_L();		/* Initialize port pin tied to SCLK */
-	DI_INIT();				/* Initialize port pin tied to DI */
-	DO_INIT();				/* Initialize port pin tied to DO */
+	
+	spi_master_init();
 
 	for (n = 10; n; n--) rcvr_mmc(buf, 1);	/* Apply 80 dummy clocks and the card gets ready to receive command */
 
