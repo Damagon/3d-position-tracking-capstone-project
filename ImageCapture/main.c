@@ -12,11 +12,18 @@
 #include <util/twi.h>
 #include <util/delay.h>
 #include <avr/io.h>
+#include "timeout.h"
+#include <string.h>
+#include <stdlib.h>
+#include "SD_Card/ff.h"
+#include "SD_Card/integer.h"
+
 #ifndef F_CPU
 #define F_CPU 1000000UL //changes from 4000000UL
 #endif
 
-
+FATFS FatFs;	// FatFs work area
+FIL *fp;		// fpe object
 
 #define SPI_ACTIVE			0 // SS Pin put Low
 #define SPI_INACTIVE		1 // SS Pin put High
@@ -39,7 +46,19 @@
 #define SPI_DDR			DDRB	//SPI on PORTB
 #define SPI_PORT		PORTB	//SPI on PORTB
 
-
+/*---------------------------------------------------------*/
+/* User Provided RTC Function called by FatFs module       */
+/* Used to provide a Timestamp for SDCard files and folders*/
+DWORD get_fattime (void)
+{
+	// Returns current time packed into a DWORD variable
+	return	  ((DWORD)(2013 - 1980) << 25)	// Year 2013
+	| ((DWORD)8 << 21)				// Month 7
+	| ((DWORD)2 << 16)				// Day 28
+	| ((DWORD)20 << 11)				// Hour 0..24
+	| ((DWORD)30 << 5)				// Min 0
+	| ((DWORD)0 >> 1);				// Sec/2 0
+}
 
 /* I2C clock in Hz */
 #define SCL_CLOCK  100000L
@@ -62,6 +81,7 @@ void spi_master_init(uint8_t mode, uint8_t clock){
 	SPCR = (1<<SPIE)|(1<<SPE)|(1<<MSTR)|(mode<<CPHA)|(clock<<SPR0);
 
 }
+
 uint8_t readSPI(uint8_t addr) {
 	
 	// Send the register address
@@ -115,6 +135,8 @@ void camInit (void){
 	//_delay_ms(100);
 	reg_set_jpeg_capture();
 	reg_set_320x240();
+	//reg_set_1280x960();
+	//reg_set_640x800();
 	_delay_ms(100);
 	
 
@@ -130,7 +152,7 @@ void camInit (void){
 	set_bit(0x03,0x02); //vsync bit to 1
 
 	//writeSPI(0x86,0x02); // Power on the sensor
-	writeSPI(0x81,0x01); //Set 1 frame to be captured in CCR 0=1
+	writeSPI(0x81,0x00); //Set 1 frame to be captured in CCR 0=1
 	
 	//set_bit(0x03,0x01); //hsync
 	//set_bit(0x03,0x10); //FIFO mode on
@@ -145,14 +167,16 @@ void startCapture(void) {
 	writeSPI(0x84,0x20);
 
 	//reg_set();
-	//_delay_ms(1000);
+	// reg_set_320x240();
+	//reg_set_1280x960();
+	_delay_ms(1000);
 	writeSPI(0x84, 0x02); //start capture
 
 	while (!(readSPI(0x41) & 0x08)); //myCam.get_bit
 
 	_delay_ms(10);
 
-	writeSPI(0x84,0x01); //clear fifo flag
+	// writeSPI(0x84,0x01); //clear fifo flag
 }
 
 
@@ -174,7 +198,6 @@ void i2c_init(void){
 	TWBR = ((4*F_CPU/SCL_CLOCK)-16)/2;  /* must be > 10 for stable operation */
 	
 }
-
 
 unsigned char i2c_start(unsigned char address){
 	uint8_t   twst;
@@ -253,13 +276,7 @@ void sensor_set(unsigned char reg1, unsigned char reg2, unsigned char data)
 	i2c_write(reg2); //write to register 3103
 	
 	i2c_write(data); //write 0x03 to register 3103
-
-	
-	
-	
-	
 }
-
 
 void set_bit(uint8_t addr, uint8_t bit)
 {
@@ -1106,43 +1123,91 @@ void reg_set_320x240(void) {
 	sensor_set(0x56, 0x85 ,0x0 );
 	sensor_set(0x56, 0x86 ,0x7 );
 	sensor_set(0x56, 0x87 ,0x98);
-	sensor_set(0x30, 0x11 ,0x0F);  //bit[5:0] div
+	//sensor_set(0x30, 0x11 ,0x0f);  //bit[5:0] div
 	sensor_set(0xff, 0xff, 0xff);
 }
 
-void sd_write(void){
-	int line = 1280;
-	int column = 960;
-	uint8_t buf[256];
-	int m = 0;
-	uint8_t p;
+void reg_set_640x800(void){
+	sensor_set(0x38, 0x00 ,0x1 );
+	sensor_set(0x38, 0x01 ,0xa8);
+	sensor_set(0x38, 0x02 ,0x0 );
+	sensor_set(0x38, 0x03 ,0xA );
+	sensor_set(0x38, 0x04 ,0xA );
+	sensor_set(0x38, 0x05 ,0x20);
+	sensor_set(0x38, 0x06 ,0x7 );
+	sensor_set(0x38, 0x07 ,0x98);
+	sensor_set(0x38, 0x08 ,0x2 );
+	sensor_set(0x38, 0x09 ,0x80);
+	sensor_set(0x38, 0x0a ,0x1 );
+	sensor_set(0x38, 0x0b ,0xe0);
+	sensor_set(0x38, 0x0c ,0xc );
+	sensor_set(0x38, 0x0d ,0x80);
+	sensor_set(0x38, 0x0e ,0x7 );
+	sensor_set(0x38, 0x0f ,0xd0);
+	sensor_set(0x50, 0x01 ,0x7f);
+	sensor_set(0x56, 0x80 ,0x0 );
+	sensor_set(0x56, 0x81 ,0x0 );
+	sensor_set(0x56, 0x82 ,0xA );
+	sensor_set(0x56, 0x83 ,0x20);
+	sensor_set(0x56, 0x84 ,0x0 );
+	sensor_set(0x56, 0x85 ,0x0 );
+	sensor_set(0x56, 0x86 ,0x7 );
+	sensor_set(0x56, 0x87 ,0x98);
+	sensor_set(0x38, 0x01, 0xb0);
+	sensor_set(0xff, 0xff, 0xff);
 	
-	for(int i = 0; i < line; i++)
-	for(int j = 0; j < column; j++)
-	{
-		p  = readSPI(0x3d);
-		buf[m++] = p;
-		if(m >= 256)
-		{
-			//Write 256 bytes image data to file from buffer
-/*******************************************************************************/
-			//THIS IS WHERE IBRAHIM NEEDS TO WRITE IMAGE (outfile code) TO SD CARD!!!
-/*******************************************************************************/
-			m = 0;
-		}
-
-
-	}
-	 if(m > 0 ) {}//Write the left image data to file from buffer
-	 //outFile.write( buf, m );m = 0;
 }
 
-int main(void)
-{
-	
+void sd_write(void){
 
+	// reboot delay
+	_delay_ms(200);
+	
+	// init sdcard
+	UINT bw;
+	f_mount(0, &FatFs);		// Give a work area to the FatFs module
+	// open file
+	fp = (FIL *)malloc(sizeof (FIL));
+
+	uint8_t buf[256];
+	int m = 0;
+	uint8_t first_frame = 1; 
 	
 	
+	uint8_t temp=0;
+	uint8_t temp_last=0;
+	while(( temp != 0xD9) | (temp_last !=0xFF)) {
+		temp_last =  temp;
+		temp = readSPI(0x3D);
+		buf[m++] = temp;
+		_delay_us(15);
+		
+		if(m >= 256) {
+			if (first_frame) {
+				if (f_open(fp, "image.jpg", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	// Create a file
+					f_write(fp, buf, sizeof(buf), &bw);	// Write data to the file
+				}
+				first_frame = 0;
+				
+			} else {
+				if (f_lseek(fp, f_size(fp)) == FR_OK) {
+					f_write(fp, buf, sizeof(buf), &bw);	// Write data to the file
+				}
+			}
+			m = 0;
+		}
+	}
+	
+	 if(m > 0 ) {
+		if (f_lseek(fp, f_size(fp)) == FR_OK) {
+			f_write(fp, buf, sizeof(buf), &bw);	// Write data to the file
+		}
+	 }
+	 
+	 f_close(fp); // Close the file
+}
+
+int main(void) {
 	
 	/*i2c_start(0x78); //writing
 	
@@ -1179,14 +1244,10 @@ int main(void)
 	
 	camInit();
 	startCapture();
-	uint32_t size = readSize();
-	//sd_write();
+	// uint32_t size = readSize();
+	sd_write();
 	//PORTD|= (1 << PD1);
-
-	readSPI(0x3d);
-	readSPI(0x3d);
-	readSPI(0x3d);
-	readSPI(0x3d);
-	readSPI(0x3d);
-	readSPI(0x3d);
+	//read_test();
+	
+	writeSPI(0x84,0x01); //clear fifo flag
 }
