@@ -40,7 +40,6 @@ FIL *fp;		// fpe object
 #define CS_SD           1        //SD Card
 #define CS_CAM_1        2        //ArduCam 1
 #define CS_CAM_2        3        //ArduCam 2
-
 #define SPI_PIN_MOSI	5		//MOSI PIN
 #define SPI_PIN_MISO	6		//MISO PIN
 #define SPI_PIN_SCK		7		//SCK PIN
@@ -241,7 +240,13 @@ uint8_t readSPI(uint8_t addr, uint8_t SS) {
 
 void camInit (uint8_t SS){
 	
-
+	if(SS == CS_CAM_1){
+		PORTB &= ~(1 << PB4); //low to camera 1, high to camera 2
+	}
+	
+	else if(SS ==  CS_CAM_2){
+		PORTB |= (1 << PB4);
+	}
 	////Reset the CPLD
 	writeSPI(0x87, 0x80, SS);
 	//_delay_ms(100);
@@ -482,14 +487,14 @@ uint8_t i2c_bitbang_read(uint8_t reg1, uint8_t reg2 ){
 
 void sensor_set(unsigned char reg1, unsigned char reg2, unsigned char data)
 {
-	//i2c_start(0x78);
-	//
-	//i2c_write(reg1);
-	//i2c_write(reg2); //write to register 3103
-	//
-	//i2c_write(data); //write 0x03 to register 3103
+	i2c_start(0x78);
 	
-	i2c_bitbang_write(reg1,reg2,data);
+	i2c_write(reg1);
+	i2c_write(reg2); //write to register 3103
+	
+	i2c_write(data); //write 0x03 to register 3103
+	
+	//i2c_bitbang_write(reg1,reg2,data);
 }
 
 
@@ -1438,70 +1443,58 @@ void sd_write(uint8_t SS, const char *filename){
 
 int main(void) {
 	
-	/*i2c_start(0x78); //writing
-	
-	
-	i2c_write(0x31);
-	i2c_write(0x03);
-	
-	i2c_start(0x79); //reading
-	uint8_t data = i2c_readNak(); 
-	//THIS CODE READS REGISTER - PUT INTO FCN LATER*/
-	
-	
-	
-	DDRD |= (1 << PD0); DDRD |= (1 << PD1);
+	DDRD |= (1 << PD0); DDRD |= (1 << PD1); DDRB |= (1 << PB4);
 	
 	PORTD &= ~(1 << PD0);
 	PORTD &= ~(1 << PD1);
+	PORTB &= ~(1 << PB4); //for mux
 	
 	spi_master_init(0,SPI_CLOCK_DIV2);
 	i2c_init();
-	i2c_bitbang_write(0x30,0x08,0x80);
 		//
 	//// Load data into the buffer
 	//
 	//
-	//writeSPI(0x80, 0x97, CS_CAM_2);//test
+	//writeSPI(0x80, 0x97, CS_CAM_1);//test
 	//
 	//
-	//uint8_t data = readSPI(0x00, CS_CAM_2);
+	//uint8_t data = readSPI(0x00, CS_CAM_1);
 	//
 	//if (data==0x97) {
 		//PORTD|= (1 << PD0);
 	//}
 	//
 	//_delay_ms(2000);
+	//PORTD &= ~(1 << PD0); //green light
+	
+	
+	//writeSPI(0x80, 0x97, CS_CAM_1);//test
+	
+	//data = readSPI(0x00, CS_CAM_1);
+	
+	//if (data==0x97) {
+		//PORTD|= (1 << PD1);
+	//}
+	
+	//_delay_ms(2000);
 	//PORTD &= ~(1 << PD0);
-	//
-	//
-	////writeSPI(0x80, 0x97, CS_CAM_1);//test
-	//
-	////data = readSPI(0x00, CS_CAM_1);
-	//
-	////if (data==0x97) {
-		////PORTD|= (1 << PD1);
-	////}
-	//
-	////_delay_ms(2000);
-	////PORTD &= ~(1 << PD0);
-	//
+	
+	camInit(CS_CAM_1);
 	//camInit(CS_CAM_2);
-	////camInit(CS_CAM_2);
-	//
+	
 	//PORTD|= (1 << PD0);
-	//
+	
+	startCapture(CS_CAM_1);
 	//startCapture(CS_CAM_2);
-	////startCapture(CS_CAM_2);
-	//// uint32_t size = readSize();
-	//
-	//char *filename_left = "imageL2.jpg";
-	////char *filename_right = "imageR.jpg";
-	//
-	//sd_write(CS_CAM_2, filename_left);
-	////sd_write(CS_CAM_2);
-	//
-	//PORTD|= (1 << PD0);
-	//PORTD|= (1 << PD1);
+	// uint32_t size = readSize();
+	
+	char *filename_left = "imageL.jpg";
+	//char *filename_right = "imageR.jpg";
+	
+	sd_write(CS_CAM_1, filename_left);
+	//sd_write(CS_CAM_2,filename_right);
+	
+	PORTD|= (1 << PD0);
+	PORTD|= (1 << PD1);
 	
 }
