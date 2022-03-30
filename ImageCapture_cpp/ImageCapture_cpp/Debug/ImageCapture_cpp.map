@@ -286,7 +286,7 @@ END GROUP
 .rela.plt
  *(.rela.plt)
 
-.text           0x00000000     0x4aae
+.text           0x00000000     0x4ac0
  *(.vectors)
  .vectors       0x00000000       0x8c C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.6.364/gcc/dev/atmega1284/avr51/crtatmega1284.o
                 0x00000000                __vector_default
@@ -431,122 +431,122 @@ END GROUP
  .text._Z8sd_writehPKc
                 0x00001b8a      0x202 main.o
                 0x00001b8a                _Z8sd_writehPKc
- .text.main     0x00001d8c       0x54 main.o
+ .text.main     0x00001d8c       0x66 main.o
                 0x00001d8c                main
  .text._ZL7mem_cpyPvPKvj
-                0x00001de0       0x2e SD_Card/ff.o
+                0x00001df2       0x2e SD_Card/ff.o
  .text._ZL7mem_setPvij
-                0x00001e0e       0x14 SD_Card/ff.o
+                0x00001e20       0x14 SD_Card/ff.o
  .text._ZL7mem_cmpPKvS0_j
-                0x00001e22       0x4a SD_Card/ff.o
+                0x00001e34       0x4a SD_Card/ff.o
  .text._ZL7chk_chrPKci
-                0x00001e6c       0x1a SD_Card/ff.o
+                0x00001e7e       0x1a SD_Card/ff.o
  .text._ZL8ld_clustP5FATFSPh
-                0x00001e86       0x32 SD_Card/ff.o
+                0x00001e98       0x32 SD_Card/ff.o
  .text._ZL8st_clustPhm
-                0x00001eb8        0xc SD_Card/ff.o
+                0x00001eca        0xc SD_Card/ff.o
  .text._ZL11create_nameP3DIRPPKc
-                0x00001ec4      0x17a SD_Card/ff.o
+                0x00001ed6      0x17a SD_Card/ff.o
  .text._ZL8check_fsP5FATFSm
-                0x0000203e       0x78 SD_Card/ff.o
+                0x00002050       0x78 SD_Card/ff.o
  .text._ZL11sync_windowP5FATFS
-                0x000020b6       0xce SD_Card/ff.o
+                0x000020c8       0xce SD_Card/ff.o
  .text._ZL11move_windowP5FATFSm
-                0x00002184       0x70 SD_Card/ff.o
+                0x00002196       0x70 SD_Card/ff.o
  .text._ZL8validatePv
-                0x000021f4       0x4a SD_Card/ff.o
+                0x00002206       0x4a SD_Card/ff.o
  .text._ZL11chk_mountedPPKcPP5FATFSh
-                0x0000223e      0x544 SD_Card/ff.o
+                0x00002250      0x544 SD_Card/ff.o
  .text._ZL7sync_fsP5FATFS
-                0x00002782       0xca SD_Card/ff.o
+                0x00002794       0xca SD_Card/ff.o
  .text._Z10clust2sectP5FATFSm
-                0x0000284c       0x50 SD_Card/ff.o
-                0x0000284c                _Z10clust2sectP5FATFSm
+                0x0000285e       0x50 SD_Card/ff.o
+                0x0000285e                _Z10clust2sectP5FATFSm
  .text._Z7get_fatP5FATFSm
-                0x0000289c      0x1d4 SD_Card/ff.o
-                0x0000289c                _Z7get_fatP5FATFSm
+                0x000028ae      0x1d4 SD_Card/ff.o
+                0x000028ae                _Z7get_fatP5FATFSm
  .text._ZL7dir_sdiP3DIRt
-                0x00002a70      0x16e SD_Card/ff.o
+                0x00002a82      0x16e SD_Card/ff.o
  .text._Z7put_fatP5FATFSmm
-                0x00002bde      0x24a SD_Card/ff.o
-                0x00002bde                _Z7put_fatP5FATFSmm
+                0x00002bf0      0x24a SD_Card/ff.o
+                0x00002bf0                _Z7put_fatP5FATFSmm
  .text._ZL12create_chainP5FATFSm
-                0x00002e28      0x1e4 SD_Card/ff.o
+                0x00002e3a      0x1e4 SD_Card/ff.o
  .text._ZL8dir_nextP3DIRi
-                0x0000300c      0x258 SD_Card/ff.o
+                0x0000301e      0x258 SD_Card/ff.o
  .text._ZL8dir_findP3DIR
-                0x00003264       0x76 SD_Card/ff.o
+                0x00003276       0x76 SD_Card/ff.o
  .text._ZL11follow_pathP3DIRPKc
-                0x000032da       0xba SD_Card/ff.o
+                0x000032ec       0xba SD_Card/ff.o
  .text._ZL9dir_allocP3DIRj
-                0x00003394       0x6a SD_Card/ff.o
+                0x000033a6       0x6a SD_Card/ff.o
  .text._ZL12dir_registerP3DIR
-                0x000033fe       0x70 SD_Card/ff.o
+                0x00003410       0x70 SD_Card/ff.o
  .text._ZL12remove_chainP5FATFSm
-                0x0000346e       0xea SD_Card/ff.o
- .text.f_mount  0x00003558       0x3c SD_Card/ff.o
-                0x00003558                f_mount
- .text.f_open   0x00003594      0x218 SD_Card/ff.o
-                0x00003594                f_open
- .text.f_write  0x000037ac      0x356 SD_Card/ff.o
-                0x000037ac                f_write
- .text.f_sync   0x00003b02       0x88 SD_Card/ff.o
-                0x00003b02                f_sync
- .text.f_close  0x00003b8a       0x16 SD_Card/ff.o
-                0x00003b8a                f_close
- .text.f_lseek  0x00003ba0      0x39a SD_Card/ff.o
-                0x00003ba0                f_lseek
+                0x00003480       0xea SD_Card/ff.o
+ .text.f_mount  0x0000356a       0x3c SD_Card/ff.o
+                0x0000356a                f_mount
+ .text.f_open   0x000035a6      0x218 SD_Card/ff.o
+                0x000035a6                f_open
+ .text.f_write  0x000037be      0x356 SD_Card/ff.o
+                0x000037be                f_write
+ .text.f_sync   0x00003b14       0x88 SD_Card/ff.o
+                0x00003b14                f_sync
+ .text.f_close  0x00003b9c       0x16 SD_Card/ff.o
+                0x00003b9c                f_close
+ .text.f_lseek  0x00003bb2      0x39a SD_Card/ff.o
+                0x00003bb2                f_lseek
  .text._ZL6dly_usj
-                0x00003f3a        0x8 SD_Card/sdmm.o
+                0x00003f4c        0x8 SD_Card/sdmm.o
  .text._ZL8xmit_mmcPKhj
-                0x00003f42      0x106 SD_Card/sdmm.o
+                0x00003f54      0x106 SD_Card/sdmm.o
  .text._ZL8rcvr_mmcPhj
-                0x00004048       0xb2 SD_Card/sdmm.o
+                0x0000405a       0xb2 SD_Card/sdmm.o
  .text._ZL10wait_readyv
-                0x000040fa       0x4e SD_Card/sdmm.o
+                0x0000410c       0x4e SD_Card/sdmm.o
  .text._ZL8deselectv
-                0x00004148       0x22 SD_Card/sdmm.o
+                0x0000415a       0x22 SD_Card/sdmm.o
  .text._ZL6selectv
-                0x0000416a       0x3c SD_Card/sdmm.o
+                0x0000417c       0x3c SD_Card/sdmm.o
  .text._ZL14rcvr_datablockPhj
-                0x000041a6       0x76 SD_Card/sdmm.o
+                0x000041b8       0x76 SD_Card/sdmm.o
  .text._ZL14xmit_datablockPKhh
-                0x0000421c       0x6e SD_Card/sdmm.o
+                0x0000422e       0x6e SD_Card/sdmm.o
  .text._ZL8send_cmdhm
-                0x0000428a       0xc0 SD_Card/sdmm.o
+                0x0000429c       0xc0 SD_Card/sdmm.o
  .text.disk_status
-                0x0000434a        0xe SD_Card/sdmm.o
-                0x0000434a                disk_status
+                0x0000435c        0xe SD_Card/sdmm.o
+                0x0000435c                disk_status
  .text.disk_initialize
-                0x00004358      0x1a0 SD_Card/sdmm.o
-                0x00004358                disk_initialize
+                0x0000436a      0x1a0 SD_Card/sdmm.o
+                0x0000436a                disk_initialize
  .text.disk_read
-                0x000044f8       0xac SD_Card/sdmm.o
-                0x000044f8                disk_read
+                0x0000450a       0xac SD_Card/sdmm.o
+                0x0000450a                disk_read
  .text.disk_write
-                0x000045a4       0xbe SD_Card/sdmm.o
-                0x000045a4                disk_write
+                0x000045b6       0xbe SD_Card/sdmm.o
+                0x000045b6                disk_write
  .text.disk_ioctl
-                0x00004662      0x190 SD_Card/sdmm.o
-                0x00004662                disk_ioctl
+                0x00004674      0x190 SD_Card/sdmm.o
+                0x00004674                disk_ioctl
  .text.libgcc.div
-                0x000047f2       0x44 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_udivmodsi4.o)
-                0x000047f2                __udivmodsi4
+                0x00004804       0x44 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_udivmodsi4.o)
+                0x00004804                __udivmodsi4
  .text.libgcc.mul
-                0x00004836       0x14 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_muluhisi3.o)
-                0x00004836                __muluhisi3
+                0x00004848       0x14 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_muluhisi3.o)
+                0x00004848                __muluhisi3
  .text.libgcc.mul
-                0x0000484a       0x1e c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_umulhisi3.o)
-                0x0000484a                __umulhisi3
+                0x0000485c       0x1e c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_umulhisi3.o)
+                0x0000485c                __umulhisi3
  .text.avr-libc
-                0x00004868      0x242 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr51\libc.a(malloc.o)
-                0x00004868                malloc
-                0x00004998                free
-                0x00004aaa                . = ALIGN (0x2)
+                0x0000487a      0x242 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr51\libc.a(malloc.o)
+                0x0000487a                malloc
+                0x000049aa                free
+                0x00004abc                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x00004aaa        0x0 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_exit.o)
-                0x00004aaa                _exit
-                0x00004aaa                exit
+ .fini9         0x00004abc        0x0 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_exit.o)
+                0x00004abc                _exit
+                0x00004abc                exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -565,11 +565,11 @@ END GROUP
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x00004aaa        0x4 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_exit.o)
+ .fini0         0x00004abc        0x4 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr51\libgcc.a(_exit.o)
  *(.fini0)
-                0x00004aae                _etext = .
+                0x00004ac0                _etext = .
 
-.data           0x00800100       0xb2 load address 0x00004aae
+.data           0x00800100       0xc0 load address 0x00004ac0
                 0x00800100                PROVIDE (__data_start, .)
  *(.data)
  .data          0x00800100        0x6 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr51\libc.a(malloc.o)
@@ -583,44 +583,43 @@ END GROUP
  *(.rodata)
  *(.rodata*)
  .rodata.str1.1
-                0x00800107        0xb main.o
+                0x00800107       0x1a main.o
  .rodata.str1.1
-                0x00800112       0x1f SD_Card/ff.o
+                0x00800121       0x1f SD_Card/ff.o
  .rodata._ZL5ExCvt
-                0x00800131       0x80 SD_Card/ff.o
+                0x00800140       0x80 SD_Card/ff.o
  *(.gnu.linkonce.r*)
-                0x008001b2                . = ALIGN (0x2)
- *fill*         0x008001b1        0x1 
-                0x008001b2                _edata = .
-                0x008001b2                PROVIDE (__data_end, .)
+                0x008001c0                . = ALIGN (0x2)
+                0x008001c0                _edata = .
+                0x008001c0                PROVIDE (__data_end, .)
 
-.bss            0x008001b2      0x23d
-                0x008001b2                PROVIDE (__bss_start, .)
+.bss            0x008001c0      0x23d
+                0x008001c0                PROVIDE (__bss_start, .)
  *(.bss)
  *(.bss*)
- .bss.fp        0x008001b2        0x2 main.o
-                0x008001b2                fp
- .bss.FatFs     0x008001b4      0x232 main.o
-                0x008001b4                FatFs
- .bss._ZL4Fsid  0x008003e6        0x2 SD_Card/ff.o
+ .bss.fp        0x008001c0        0x2 main.o
+                0x008001c0                fp
+ .bss.FatFs     0x008001c2      0x232 main.o
+                0x008001c2                FatFs
+ .bss._ZL4Fsid  0x008003f4        0x2 SD_Card/ff.o
  .bss._ZL5FatFs
-                0x008003e8        0x2 SD_Card/ff.o
+                0x008003f6        0x2 SD_Card/ff.o
  .bss._ZL8CardType
-                0x008003ea        0x1 SD_Card/sdmm.o
+                0x008003f8        0x1 SD_Card/sdmm.o
  *(COMMON)
- COMMON         0x008003eb        0x4 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr51\libc.a(malloc.o)
-                0x008003eb                __brkval
-                0x008003ed                __flp
-                0x008003ef                PROVIDE (__bss_end, .)
-                0x00004aae                __data_load_start = LOADADDR (.data)
-                0x00004b60                __data_load_end = (__data_load_start + SIZEOF (.data))
+ COMMON         0x008003f9        0x4 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr51\libc.a(malloc.o)
+                0x008003f9                __brkval
+                0x008003fb                __flp
+                0x008003fd                PROVIDE (__bss_end, .)
+                0x00004ac0                __data_load_start = LOADADDR (.data)
+                0x00004b80                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x008003ef        0x0
+.noinit         0x008003fd        0x0
                 [!provide]                PROVIDE (__noinit_start, .)
  *(.noinit*)
                 [!provide]                PROVIDE (__noinit_end, .)
-                0x008003ef                _end = .
-                0x008003ef                PROVIDE (__heap_start, .)
+                0x008003fd                _end = .
+                0x008003fd                PROVIDE (__heap_start, .)
 
 .eeprom         0x00810000        0x0
  *(.eeprom*)
@@ -699,12 +698,12 @@ END GROUP
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x00000000     0xadb9
+.debug_info     0x00000000     0xae13
  *(.debug_info .gnu.linkonce.wi.*)
  .debug_info    0x00000000      0x792 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.6.364/gcc/dev/atmega1284/avr51/crtatmega1284.o
- .debug_info    0x00000792     0x7aed main.o
- .debug_info    0x0000827f     0x1f8a SD_Card/ff.o
- .debug_info    0x0000a209      0xbb0 SD_Card/sdmm.o
+ .debug_info    0x00000792     0x7b47 main.o
+ .debug_info    0x000082d9     0x1f8a SD_Card/ff.o
+ .debug_info    0x0000a263      0xbb0 SD_Card/sdmm.o
 
 .debug_abbrev   0x00000000      0xf38
  *(.debug_abbrev)
@@ -713,12 +712,12 @@ END GROUP
  .debug_abbrev  0x00000b3d      0x238 SD_Card/ff.o
  .debug_abbrev  0x00000d75      0x1c3 SD_Card/sdmm.o
 
-.debug_line     0x00000000     0x4091
+.debug_line     0x00000000     0x40a3
  *(.debug_line .debug_line.* .debug_line_end)
  .debug_line    0x00000000      0x16a C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.6.364/gcc/dev/atmega1284/avr51/crtatmega1284.o
- .debug_line    0x0000016a     0x1e7a main.o
- .debug_line    0x00001fe4     0x1876 SD_Card/ff.o
- .debug_line    0x0000385a      0x837 SD_Card/sdmm.o
+ .debug_line    0x0000016a     0x1e8c main.o
+ .debug_line    0x00001ff6     0x1876 SD_Card/ff.o
+ .debug_line    0x0000386c      0x837 SD_Card/sdmm.o
 
 .debug_frame    0x00000000      0xc44
  *(.debug_frame)
@@ -726,14 +725,14 @@ END GROUP
  .debug_frame   0x000002a4      0x75c SD_Card/ff.o
  .debug_frame   0x00000a00      0x244 SD_Card/sdmm.o
 
-.debug_str      0x00000000      0xd7b
+.debug_str      0x00000000      0xd70
  *(.debug_str)
  .debug_str     0x00000000      0x296 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.6.364/gcc/dev/atmega1284/avr51/crtatmega1284.o
- .debug_str     0x00000296      0x7a8 main.o
-                                0x81e (size before relaxing)
- .debug_str     0x00000a3e      0x2c8 SD_Card/ff.o
+ .debug_str     0x00000296      0x79d main.o
+                                0x813 (size before relaxing)
+ .debug_str     0x00000a33      0x2c8 SD_Card/ff.o
                                 0x693 (size before relaxing)
- .debug_str     0x00000d06       0x75 SD_Card/sdmm.o
+ .debug_str     0x00000cfb       0x75 SD_Card/sdmm.o
                                 0x2ff (size before relaxing)
 
 .debug_loc      0x00000000     0x5310

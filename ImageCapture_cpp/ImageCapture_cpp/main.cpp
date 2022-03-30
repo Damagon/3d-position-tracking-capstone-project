@@ -1451,7 +1451,7 @@ int main(void) {
 	
 	spi_master_init(0,SPI_CLOCK_DIV2);
 	i2c_init();
-		//
+	//
 	//// Load data into the buffer
 	//
 	//
@@ -1461,7 +1461,7 @@ int main(void) {
 	//uint8_t data = readSPI(0x00, CS_CAM_1);
 	//
 	//if (data==0x97) {
-		//PORTD|= (1 << PD0);
+	//PORTD|= (1 << PD0);
 	//}
 	//
 	//_delay_ms(2000);
@@ -1473,26 +1473,26 @@ int main(void) {
 	//data = readSPI(0x00, CS_CAM_1);
 	
 	//if (data==0x97) {
-		//PORTD|= (1 << PD1);
+	//PORTD|= (1 << PD1);
 	//}
 	
 	//_delay_ms(2000);
 	//PORTD &= ~(1 << PD0);
 	
 	camInit(CS_CAM_1);
-	//camInit(CS_CAM_2);
+	camInit(CS_CAM_2);
 	
 	//PORTD|= (1 << PD0);
 	
 	startCapture(CS_CAM_1);
-	//startCapture(CS_CAM_2);
+	startCapture(CS_CAM_2);
 	// uint32_t size = readSize();
 	
-	char *filename_left = "imageL.jpg";
-	//char *filename_right = "imageR.jpg";
+	char *filename_left = "imageL11.jpg";
+	char *filename_right = "imageR11.jpg";
 	
 	sd_write(CS_CAM_1, filename_left);
-	//sd_write(CS_CAM_2,filename_right);
+	sd_write(CS_CAM_2,filename_right);
 	
 	PORTD|= (1 << PD0);
 	PORTD|= (1 << PD1);
