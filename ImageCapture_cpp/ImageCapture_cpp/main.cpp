@@ -13,10 +13,12 @@
 #include <util/delay.h>
 #include <avr/io.h>
 #include "timeout.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include "SD_Card/ff.h"
 #include "SD_Card/integer.h"
+#include <avr/eeprom.h>
 
 #ifndef F_CPU
 #define F_CPU 1000000UL //changes from 4000000UL
@@ -37,21 +39,55 @@ FIL *fp;		// fpe object
 #define SPI_CLOCK_DIV8		0x05
 #define SPI_CLOCK_DIV32		0x06
 
-
+#define CS_SD           1        //SD Card
 #define CS_CAM_1        2        //ArduCam 1
-#define SPI_PIN_SS		4		//SS PIN
+#define CS_CAM_2        3        //ArduCam 2
 #define SPI_PIN_MOSI	5		//MOSI PIN
 #define SPI_PIN_MISO	6		//MISO PIN
 #define SPI_PIN_SCK		7		//SCK PIN
 #define SPI_DDR			DDRB	//SPI on PORTB
 #define SPI_PORT		PORTB	//SPI on PORTB
 
+// Set DQ as AVR MISO
+#define DO_INIT()					/* Initialize port MMC DO as input */
+#define DO_DQ		PB6 //PB3
+#define DO			(PINB &	(1<<DO_DQ))	/* Test for MMC DO ('H':true, 'L':false) */
+
+// Set DQ as AVR MOSI
+#define DI_DQ		PB5 //PB2
+#define DI_INIT()	DDRB  |= (1<<DI_DQ)	/* Initialize port MMC DI as output */
+#define DI_H()		PORTB |= (1<<DI_DQ)	/* Set MMC DI "high" */
+#define DI_L()		PORTB &= ~(1<<DI_DQ)	/* Set MMC DI "low" */
+
+// Set DQ as AVR SCK
+#define CK_DQ		PB7 //PB1
+#define CK_INIT()	DDRB  |= (1<<CK_DQ)	/* Initialize port MMC SCLK as output */
+#define CK_H()		PORTB |= (1<<CK_DQ)	/* Set MMC SCLK "high" */
+#define	CK_L()		PORTB &= ~(1<<CK_DQ)	/* Set MMC SCLK "low" */
+
+// Use a pin for CS
+#define CS_DQ		PB1 //PB0
+#define CS_INIT()	DDRB  |= (1<<CS_DQ)	/* Initialize port MMC CS as output */
+#define	CS_H()		PORTB |= (1<<CS_DQ)	/* Set MMC CS "high" */
+#define CS_L()		PORTB &= ~(1<<CS_DQ)	/* Set MMC CS "low" */
+
+#define PI2C_SDA PA6
+#define PI2C_SCL PA7
+#define SDA_ON (PORTA |= (1<< PA6))
+#define SDA_OFF (PORTA &= ~(1<< PA6))
+#define SCL_ON (PORTA |= (1<< PA7))
+#define SCL_OFF (PORTA &= ~(1<< PA7))
+#define SDA_READ (PINA & (1 << PI2C_SDA))
+#define SCL_READ (PINA & (1 << PI2C_SCL))
+#define dly() _delay_us(0.1)
+
+
 void sensor_set(unsigned char reg1, unsigned char reg2, unsigned char data);
 void reg_set_jpeg (void);
 void reg_set_jpeg_capture (void);
 void reg_set_320x240(void);
 void reg_set_640x800(void);
-void set_bit(uint8_t addr, uint8_t bit);
+void set_bit(uint8_t addr, uint8_t bit, uint8_t SS);
 
 /*---------------------------------------------------------*/
 /* User Provided RTC Function called by FatFs module       */
@@ -70,49 +106,97 @@ DWORD get_fattime (void)
 /* I2C clock in Hz */
 #define SCL_CLOCK  100000L
 
-#define CS_CAM_1        2        //ArduCam 1
-
 void spi_master_init(uint8_t mode, uint8_t clock){
 	
-	// Pin Configuration
-	SPI_DDR |= (1<<SPI_PIN_SS);
-	SPI_PORT|= (1<<SPI_PIN_SS);
+
 	//set PB2 to output and set it high
 	SPI_DDR |= (1<<CS_CAM_1);
 	SPI_PORT|= (1<<CS_CAM_1);
+	
+	//set PB2 to output and set it high
+	SPI_DDR |= (1<<CS_CAM_2);
+	SPI_PORT|= (1<<CS_CAM_2);
 	
 	static volatile uint8_t SPI_CTS	 = SPI_INACTIVE;
 	// Set MOSI and SCK output, all others input
 	SPI_DDR |= (1<<SPI_PIN_MOSI)|(1<<SPI_PIN_SCK);
 	// Enable SPI, Master, set clock rate
-	SPCR = (1<<SPIE)|(1<<SPE)|(1<<MSTR)|(mode<<CPHA)|(clock<<SPR0);
-
+	//SPCR = (1<<SPIE)|(1<<SPE)|(1<<MSTR)|(mode<<CPHA)|(clock<<SPR0);
 }
 
-uint8_t readSPI(uint8_t addr) {
-	
-	// Send the register address
-	PORTB&= ~(1<<CS_CAM_1);
-	SPDR = addr;
+static
+void xmit_mmc (
+const BYTE* buff,	/* Data to be sent */
+UINT bc				/* Number of bytes to send */
+)
+{
+	BYTE d;
 
-	//Wait until transmission complete
-	while(!(SPSR & (1<<SPIF) ));
 
-	// Receive the value from the ArduCAM
-	SPDR = 0x00; //Command
-
-	//Wait until transmission complete
-	while(!(SPSR & (1<<SPIF) ));
-	uint8_t data = SPDR;
-
-	PORTB|= (1<<CS_CAM_1);
-	
-	return data;
+	do {
+		d = *buff++;	/* Get a byte to be sent */
+		if (d & 0x80) DI_H(); else DI_L();	/* bit7 */
+		CK_H(); CK_L();
+		if (d & 0x40) DI_H(); else DI_L();	/* bit6 */
+		CK_H(); CK_L();
+		if (d & 0x20) DI_H(); else DI_L();	/* bit5 */
+		CK_H(); CK_L();
+		if (d & 0x10) DI_H(); else DI_L();	/* bit4 */
+		CK_H(); CK_L();
+		if (d & 0x08) DI_H(); else DI_L();	/* bit3 */
+		CK_H(); CK_L();
+		if (d & 0x04) DI_H(); else DI_L();	/* bit2 */
+		CK_H(); CK_L();
+		if (d & 0x02) DI_H(); else DI_L();	/* bit1 */
+		CK_H(); CK_L();
+		if (d & 0x01) DI_H(); else DI_L();	/* bit0 */
+		CK_H(); CK_L();
+	} while (--bc);
 }
 
-void writeSPI(uint8_t addr, uint8_t data) {
+static
+void rcvr_mmc (
+BYTE *buff,	/* Pointer to read buffer */
+UINT bc		/* Number of bytes to receive */
+)
+{
+	BYTE r;
+
+
+	DI_H();	/* Send 0xFF */
+
+	do {
+		r = 0;	 if (DO) r++;	/* bit7 */
+		CK_H(); CK_L();
+		r <<= 1; if (DO) r++;	/* bit6 */
+		CK_H(); CK_L();
+		r <<= 1; if (DO) r++;	/* bit5 */
+		CK_H(); CK_L();
+		r <<= 1; if (DO) r++;	/* bit4 */
+		CK_H(); CK_L();
+		r <<= 1; if (DO) r++;	/* bit3 */
+		CK_H(); CK_L();
+		r <<= 1; if (DO) r++;	/* bit2 */
+		CK_H(); CK_L();
+		r <<= 1; if (DO) r++;	/* bit1 */
+		CK_H(); CK_L();
+		r <<= 1; if (DO) r++;	/* bit0 */
+		CK_H(); CK_L();
+		*buff++ = r;			/* Store a received byte */
+	} while (--bc);
+}
+
+void writeSPI(uint8_t addr, uint8_t data, uint8_t SS) {
+	BYTE d[2];
+	d[0] = addr;
+	d[1] = data;
 	
-	PORTB&= ~(1<<CS_CAM_1);
+	PORTB&= ~(1<<SS);
+	xmit_mmc(d, 2);
+	PORTB|= (1<<SS);
+	
+	/*
+	PORTB&= ~(1<<SS);
 	SPDR = addr;
 
 	//Wait until transmission complete
@@ -123,27 +207,62 @@ void writeSPI(uint8_t addr, uint8_t data) {
 	//Wait until transmission complete
 	while(!(SPSR & (1<<SPIF) ));
 
-	PORTB|= (1<<CS_CAM_1);
-	
+	PORTB|= (1<<SS);
+	*/
 }
 
-void camInit (void){
+uint8_t readSPI(uint8_t addr, uint8_t SS) {
+	BYTE d[1];
+	d[0] = addr;
 	
+	
+	PORTB&= ~(1<<SS);
+	xmit_mmc(d, 1);
+	rcvr_mmc(d, 1);
+	PORTB|= (1<<SS);
+	
+	//// Send the register address
+	//PORTB&= ~(1<<SS);
+	//SPDR = addr;
+//
+	////Wait until transmission complete
+	//while(!(SPSR & (1<<SPIF) ));
+//
+	//// Receive the value from the ArduCAM
+	//SPDR = 0x00; //Command
+//
+	////Wait until transmission complete
+	//while(!(SPSR & (1<<SPIF) ));
+	//uint8_t data = SPDR;
+//
+	//PORTB|= (1<<SS);
+	
+	return d[0];
+}
 
+void camInit (uint8_t SS){
+	
+	if(SS == CS_CAM_1){
+		PORTB &= ~(1 << PB4); //low to camera 1, high to camera 2
+	}
+	
+	else if(SS ==  CS_CAM_2){
+		PORTB |= (1 << PB4);
+	}
 	////Reset the CPLD
-	writeSPI(0x87, 0x80);
+	writeSPI(0x87, 0x80, SS);
 	//_delay_ms(100);
-	writeSPI(0x87, 0x00);
+	writeSPI(0x87, 0x00, SS);
 	//_delay_ms(100);
 
-
+	 //Comment it out to see if it is needed
 	sensor_set(0x30,0x08, 0x80); //reset
 	reg_set_jpeg(); //set all i2c registers
 	//_delay_ms(100);
 	reg_set_jpeg_capture();
-	//reg_set_320x240();
+	reg_set_320x240();
 	//reg_set_1280x960();
-	reg_set_640x800();
+	//reg_set_640x800();
 	_delay_ms(100);
 	
 
@@ -156,10 +275,10 @@ void camInit (void){
 	
 	
 	
-	set_bit(0x03,0x02); //vsync bit to 1
+	set_bit(0x03,0x02,SS); //vsync bit to 1
 
 	//writeSPI(0x86,0x02); // Power on the sensor
-	writeSPI(0x81,0x00); //Set 1 frame to be captured in CCR 0=1
+	writeSPI(0x81,0x00,SS); //Set 1 frame to be captured in CCR 0=1
 	
 	//set_bit(0x03,0x01); //hsync
 	//set_bit(0x03,0x10); //FIFO mode on
@@ -167,35 +286,23 @@ void camInit (void){
 	//readSPI(0x45);
 }
 
-void startCapture(void) {
-	writeSPI(0x84,0x01); //flush the fifo
-	writeSPI(0x84,0x01); //clear the fifo
-	writeSPI(0x84,0x10); //reset fifo write pointer
-	writeSPI(0x84,0x20);
+void startCapture(uint8_t SS) {
+	writeSPI(0x84,0x01,SS); //flush the fifo
+	writeSPI(0x84,0x01,SS); //clear the fifo
+	writeSPI(0x84,0x10,SS); //reset fifo write pointer
+	writeSPI(0x84,0x20,SS);
 
 	//reg_set();
 	// reg_set_320x240();
 	//reg_set_1280x960();
-	_delay_ms(1000);
-	writeSPI(0x84, 0x02); //start capture
+	//_delay_ms(1000);
+	writeSPI(0x84, 0x02, SS); //start capture
 
-	while (!(readSPI(0x41) & 0x08)); //myCam.get_bit
+	while (!(readSPI(0x41,SS) & 0x08)); //myCam.get_bit
 
-	_delay_ms(10);
+	//_delay_ms(10);
 
 	// writeSPI(0x84,0x01); //clear fifo flag
-}
-
-
-uint32_t readSize(void){
-	uint32_t low = readSPI(0x42);
-	uint32_t mid =  readSPI(0x43);
-	uint32_t high = readSPI(0x44) & 0x7f;
-	
-	uint32_t size =  ((high << 16) | (mid << 8) | low) & 0x07fffff;
-
-	
-	return size;
 }
 
 void i2c_init(void){
@@ -203,6 +310,9 @@ void i2c_init(void){
 	
 	TWSR = 0;                         /* no prescaler */
 	TWBR = ((4*F_CPU/SCL_CLOCK)-16)/2;  /* must be > 10 for stable operation */
+	DDRA |= (1<<PA6)|(1<<PA7); // Set the bit banging outputs
+	SDA_OFF;
+	SCL_OFF;
 	
 }
 
@@ -275,6 +385,108 @@ unsigned char i2c_readNak(void)
 }
 /* i2c_readNak */
 
+	
+	/*  i2c start sequence */
+	void start(){
+		SDA_ON;
+		dly();
+		SCL_ON;
+		dly();
+		SDA_OFF;
+		dly();
+		SCL_OFF;
+		dly();
+	}
+	
+	/*  i2c stop sequence */
+	void stop(){
+		SDA_OFF;
+		dly();
+		SCL_ON;
+		dly();
+		SDA_ON;
+		dly();
+	}
+	
+	/* Transmit 8 bit data to slave */
+	bool Tx(uint8_t dat){
+
+		for(uint8_t i = 8; i; i--){
+			(dat & 0x80) ? SDA_ON : SDA_OFF; //Mask for the eight bit
+			dat<<=1;  //Move
+			dly();
+			SCL_ON;
+			dly();
+			SCL_OFF;
+			dly();
+		}
+		SDA_ON;
+		SCL_ON;
+		dly();
+		bool ack = !SDA_READ;    // Acknowledge bit
+		SCL_OFF;
+		return ack;
+	}
+	 
+	 
+	uint8_t Rx(bool ack){
+		uint8_t dat = 0;
+		SDA_ON;
+		for( uint8_t i =0; i<8; i++){
+			dat <<= 1;
+			do{
+				SCL_ON;
+			}while(	(PINA & PA7)== 0);  //clock stretching //if ( PINC & PC1 ) = SDA_READ
+			dly();
+			if((PINA & PA6)) dat |=1;
+			dly();
+			SCL_OFF;
+		}
+		ack ? SDA_OFF : SDA_ON;
+		SCL_ON;
+		dly();
+		SCL_OFF;
+		SDA_ON;
+		return(dat);
+	}
+	
+	
+	
+void i2c_bitbang_write(uint8_t reg1, uint8_t reg2, uint8_t data ){
+	//DDRB = (1<<DDB1)|(1<<DDB0); // Set the PB0 and PB1 as output
+	
+		start();
+		Tx(0x78);//Transfer the slave address
+		Tx(reg1); // register addr part 1
+		Tx(reg2); // register addr part 2
+		Tx(data); // Data to be written
+		stop();
+	
+	//i2c_start(0x78);
+	//
+	//i2c_write(reg1);
+	//i2c_write(reg2); //write to register 3103
+	//
+	//i2c_write(data); //write 0x03 to register 3103
+
+}
+
+uint8_t i2c_bitbang_read(uint8_t reg1, uint8_t reg2 ){
+	DDRB = (1<<DDB1)|(1<<DDB0); // Set the PB0 and PB1 as output
+	
+	start();
+	Tx(0x78);
+	Tx(reg1); // register addr part 1
+	Tx(reg2); // register addr part 2
+	stop();
+	start();
+	Tx(0x79);//Transfer the slave address
+	uint8_t data = Rx(0);
+	stop();
+	return data;
+
+}
+
 void sensor_set(unsigned char reg1, unsigned char reg2, unsigned char data)
 {
 	i2c_start(0x78);
@@ -283,13 +495,16 @@ void sensor_set(unsigned char reg1, unsigned char reg2, unsigned char data)
 	i2c_write(reg2); //write to register 3103
 	
 	i2c_write(data); //write 0x03 to register 3103
+	
+	//i2c_bitbang_write(reg1,reg2,data);
 }
 
-void set_bit(uint8_t addr, uint8_t bit)
+
+void set_bit(uint8_t addr, uint8_t bit, uint8_t SS)
 {
 	uint8_t temp;
-	temp = readSPI(addr);
-	writeSPI(0x80|addr, temp | bit);
+	temp = readSPI(addr, SS);
+	writeSPI(0x80|addr, temp | bit, SS);
 }
 
 void reg_set (void)
@@ -1165,7 +1380,7 @@ void reg_set_640x800(void){
 	
 }
 
-void sd_write(void){
+void sd_write(uint8_t SS, const char *filename){
 	// reboot delay
 	_delay_ms(200);
 	
@@ -1179,31 +1394,30 @@ void sd_write(void){
 	int m = 0;
 	uint8_t first_frame = 1; 
 	
-	
-	
 	uint8_t temp=0;
 	uint8_t temp_last=0;
 
-	char *filename = "image4.jpg";	
+	//char *filename = "image420.jpg";	
 
 	while(( temp != 0xD9) | (temp_last !=0xFF)) {
 		temp_last =  temp;
-		temp = readSPI(0x3D);
+		temp = readSPI(0x3D,SS);
 		buf[m++] = temp;
 		_delay_us(15);
 		
 		if(m >= 256) {
-			SPCR &= ~(1<<SPE);
+			PORTD ^= (1 << PD0);
+			
 			if (first_frame) {
-				if (f_open(fp, "image79.jpg", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	// Create a file
-					PORTD|= (1 << PD0);
+				PORTD|= (1 << PD1);
+				if (f_open(fp, filename, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	// Create a file
 					f_write(fp, buf, sizeof(buf), &bw);	// Write data to the file
 					f_close(fp); // Close the file
 				}
 				first_frame = 0;
 				
 			} else {
-				if (f_open(fp, "image79.jpg", FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {
+				if (f_open(fp, filename, FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {
 					if (f_lseek(fp, f_size(fp)) == FR_OK) {
 						f_write(fp, buf, sizeof(buf), &bw);	// Write data to the file
 						f_close(fp); // Close the file
@@ -1211,70 +1425,150 @@ void sd_write(void){
 				}
 			}
 			m = 0;
-			SPCR |= (1<<SPE);
 		}
 	}
 	
 	 if(m > 0 ) {
-		SPCR &= ~(1<<SPE);
-		if (f_open(fp, "image79.jpg", FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {
+		if (f_open(fp, filename, FA_WRITE | FA_OPEN_ALWAYS) == FR_OK) {
 			if (f_lseek(fp, f_size(fp)) == FR_OK) {
 				f_write(fp, buf, sizeof(buf), &bw);	// Write data to the file
 				f_close(fp); // Close the file
 			}
 		}
-		SPCR |= (1<<SPE);
 	 }
 	 
 	 f_close(fp); // Close the file
+	 
+	 writeSPI(0x84,0x01,SS); //clear fifo flag
 }
 
+void imu_write(unsigned char addr, unsigned char data)
+{
+	i2c_write(0xD0); //b110100 0 0 (write)
+
+	i2c_write(addr);
+	i2c_write(data);
+	i2c_stop();
+	
+}
+
+unsigned char imu_read(unsigned char addr) // TODO: Finish
+{
+	i2c_start(0xD0); //b110100 0 0 (write)
+	i2c_write(addr);
+	i2c_start(0xD1); //b110100 0 1 (read)
+	unsigned char data = i2c_readNak(); //read data ?
+	i2c_stop();
+	return data;
+}
+
+void imu_i2c (void){
+	// Initialize:
+	// Reset registers (PWR_MGMT_1.DEVICE_RESET)
+	imu_write(0x68, 0b10000000);
+	// Delay for 1 ms
+	_delay_ms(1);
+	
+	// Test - Read WHO_AM_I = 0xAF
+	unsigned char testReg = imu_read(0x75);
+	if (testReg == 0xAF){
+		PORTD&= ~ (1 << PD0);
+	}
+}
+
+
 int main(void) {
+	DDRD |= (1 << PD0); DDRD |= (1 << PD1); DDRB |= (1 << PB4);
+	DDRB &= ~(1<<PB0);	//set shutter button as input
 	
-	/*i2c_start(0x78); //writing
-	
-	
-	i2c_write(0x31);
-	i2c_write(0x03);
-	
-	i2c_start(0x79); //reading
-	uint8_t data = i2c_readNak(); 
-	//THIS CODE READS REGISTER - PUT INTO FCN LATER*/
-	
-	
-	
-	DDRD |= (1 << PD0); DDRD |= (1 << PD1);
-	
-	PORTD &= ~(1 << PD0);
-	PORTD &= ~(1 << PD1);
+	PORTD &= ~(1 << PD0); //set green led as input
+	PORTD &= ~(1 << PD1);//set red led as input
+	PORTB &= ~(1 << PB4); //set pb4 as pin for mux (splitting SCL and SDA lines)
+	PORTB|= (1<<PB0); // Configure as pull-up (?)
 	
 	spi_master_init(0,SPI_CLOCK_DIV2);
 	i2c_init();
+	//imu_i2c();
+	
 	// Load data into the buffer
 	
-	
-
-	//writeSPI(0x80, 0x97);//test
-	
-	//uint8_t data = readSPI(0x00);
-	
-	/*if (data==0x97) {
-		PORTD|= (1 << PD0);
-	}*/
-	
+	//
+	//writeSPI(0x80, 0x97, CS_CAM_1);//test
+	//
+	//
+	//uint8_t data = readSPI(0x00, CS_CAM_1);
+	//
+	//if (data==0x97) {
+	//PORTD|= (1 << PD0);
+	//}
+	//
+	//_delay_ms(2000);
+	//PORTD &= ~(1 << PD0); //green light
+	//
+	//
+	//writeSPI(0x80, 0x97, CS_CAM_1);//test
+	//
+	//data = readSPI(0x00, CS_CAM_1);
+	//
+	//if (data==0x97) {
+	//PORTD|= (1 << PD1);
+	//}
+	//
 	//_delay_ms(2000);
 	//PORTD &= ~(1 << PD0);
 	
-	camInit();
-	startCapture();
-	// uint32_t size = readSize();
-	sd_write();
-	
-	//read_test();
-	
-	writeSPI(0x84,0x01); //clear fifo flag
+	//camInit(CS_CAM_1);
+	//camInit(CS_CAM_2);
 	
 	//PORTD|= (1 << PD0);
-	PORTD|= (1 << PD1);
+	
+	//startCapture(CS_CAM_1);
+	//startCapture(CS_CAM_2);
+	// uint32_t size = readSize();
+	
+	//char *filename_left = "imageL1.jpg";
+	//char *filename_right = "imageR1.jpg";
+	//
+	char filename_left[30];
+	char filename_right[30];
+	//
+	//sd_write(CS_CAM_1, filename_left);
+	//sd_write(CS_CAM_2,filename_right);
+	
+	//PORTD|= (1 << PD0);
+	//PORTD|= (1 << PD1);
+	
+	
+	camInit(CS_CAM_1);
+	camInit(CS_CAM_2);
+	
+	int fileIndex = 0;
+	//fileIndex = eeprom_read_word((uint16_t*)100); // TODO: Doesn't work!!
+	while(1) {
+		if (!(PINB & (1<<PB0))) { // If button pressed
+			PORTD &= ~(1 << PD0);
+			PORTD &= ~(1 << PD1);
+			 
+			startCapture(CS_CAM_1);
+			startCapture(CS_CAM_2);
+			
+			fileIndex++;
+			
+			snprintf(filename_left, 30, "image%d_L.jpg", fileIndex);
+			snprintf(filename_right, 30, "image%d_R.jpg", fileIndex);
+			
+			//eeprom_update_word((uint16_t*)100, fileIndex);
+			
+			sd_write(CS_CAM_1, filename_left);
+			sd_write(CS_CAM_2, filename_right);
+			
+			//if(fileIndex == 999){
+				//fileIndex = 0;
+			//}
+			
+			PORTD|= (1 << PD0);
+			PORTD|= (1 << PD1); //GREEN MEANS READY TO BEGIN
+		}
+	}
 	
 }
